@@ -12,7 +12,7 @@ WORKDIR /app
 
 COPY --from=git /app/common-lib /app/common-lib
 COPY --from=git /app/parent /app/parent
-COPY --from=git /app/hrm/web /app/web
+COPY --from=git /app/hrm /app/hrm
 
 RUN mvn -f ./common-lib clean install -DskipTests
 RUN mvn -f ./parent clean install -DskipTests
