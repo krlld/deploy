@@ -14,9 +14,9 @@ COPY --from=git /app/common-lib /app/common-lib
 COPY --from=git /app/parent /app/parent
 COPY --from=git /app/hrm/web /app/web
 
-RUN mvn -f /commo-lib clean install -DskipTests
-RUN mvn -f /parent clean install -DskipTests
-RUN mvn -f /web clean install -DskipTests
+RUN mvn -f ./commo-lib clean install -DskipTests
+RUN mvn -f ./parent clean install -DskipTests
+RUN mvn -f ./web clean install -DskipTests
 
 FROM openjdk:17-slim
 
