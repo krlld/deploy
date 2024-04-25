@@ -1,0 +1,101 @@
+services:
+  app:
+    build: .
+    container_name: hrm
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/hrm
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_FLYWAY_PASSWORD=1234
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://keycloak:${KEYCLOAK_PORT:-8080}/realms/${KEYCLOAK_REALM:-hrm-realm}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_USERNAME=rmuser
+      - SPRING_RABBITMQ_PASSWORD=rmpassword
+    depends_on:
+      - db
+      - keycloak
+      - rabbitmq
+    ports:
+      - "8081:8080"
+
+  keycloak-postgres:
+    image: 'postgres:${KC_POSTGRES_IMAGE_TAG:-15-alpine}'
+    container_name: '${POSTGRES_CONTAINER_NAME:-postgres}'
+    restart: on-failure
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: pg_isready -d postgres
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - '${KC_POSTGRES_PORT_MAPPING:-5435}:5432'
+
+  keycloak:
+    image: 'quay.io/keycloak/keycloak:24.0.2'
+    container_name: keycloak-24
+    command: start
+    working_dir: /opt/keycloak
+    environment:
+      #      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      #      KC_HOSTNAME_ADMIN_URL: "http://10.97.95.32:8080/"
+      KC_HOSTNAME_DEBUG: true
+      KC_PROXY: edge
+      #      PROXY_ADDRESS_FORWARDING: true
+      KC_DB: postgres
+      KC_DB_URL: 'jdbc:postgresql://postgres:5432/postgres'
+      KC_DB_USERNAME: root
+      KC_DB_PASSWORD: root
+      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/server.crt.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/server.key.pem
+    ports:
+      - '8080:8080'
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://0.0.0.0:8080/realms/master" ]
+      interval: 30s
+      retries: 3
+      timeout: 5s
+    volumes:
+      - ../server.crt.pem:/opt/keycloak/conf/server.crt.pem
+      - ../server.key.pem:/opt/keycloak/conf/server.key.pem
+
+  db:
+    image: postgres:15-alpine
+    container_name: app_db_container
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=hrm
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    hostname: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=rmuser
+      - RABBITMQ_DEFAULT_PASS=rmpassword
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+volumes:
+  postgres-data:
