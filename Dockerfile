@@ -16,7 +16,7 @@ COPY --from=git /app/hrm /app/hrm
 
 RUN mvn -f ./common-lib clean install -DskipTests
 RUN mvn -f ./parent clean install -DskipTests
-RUN mvn -f ./web clean install -DskipTests
+RUN mvn -f ./hrm clean install -DskipTests
 
 FROM openjdk:17-slim
 
