@@ -22,6 +22,6 @@ FROM openjdk:17-slim
 
 WORKDIR /app
 
-COPY --from=build /app/web/target/*.jar /app/*.jar
+COPY --from=build /app/hrm/target/*.jar /app/*.jar
 
 CMD ["java", "-jar", "/app/*.jar"]
